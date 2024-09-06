@@ -1,91 +1,79 @@
-# Hyper-Parameter-Tuning-of-ML-Models
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from google.colab import files
+# Hyper-Parameter Tuning of Machine Learning Models
 
-# Load the dataset
-file_path = files.upload()
+## Overview
+This project demonstrates how to perform hyper-parameter tuning for machine learning models using two common search techniques: **RandomizedSearchCV** and **GridSearchCV**. The model used in this example is a **GradientBoostingClassifier** from the `scikit-learn` library, and the dataset is loaded from a CSV file.
 
-filename = list(file_path.keys())[0]
+## Project Structure
+- **Load Dataset**: The dataset is uploaded and loaded from a CSV file using Google Colab's `files.upload()` function.
+- **Preprocessing**: Standard scaling is applied to the features, and unnecessary columns such as identifiers (e.g., `Email No.`) are dropped.
+- **Model Training**: The `GradientBoostingClassifier` is used for classification, and its hyper-parameters are fine-tuned using Randomized and Grid Search methods.
+- **Performance Evaluation**: After tuning, the performance of the model is evaluated using metrics like accuracy, precision, recall, and F1-score.
 
-# Load the dataset from the uploaded CSV file
-df = pd.read_csv(filename)
+## Dependencies
+This project requires the following Python libraries:
+- `pandas`: For data manipulation and analysis
+- `scikit-learn`: For machine learning models, scaling, and evaluation metrics
+- `google.colab`: To upload files when running in Google Colab
 
-# Drop the "Email No." column as it is an identifier
-df.drop(columns=['Email No.'], inplace=True)
+You can install the required packages using the following commands:
+```bash
+pip install pandas scikit-learn
+```
 
-# Sample 300 rows from the dataset
-df = df.sample(n=300, random_state=42)
+## Dataset
+The dataset used in this project is uploaded from a CSV file. The file contains various features that are scaled before training the model. The target variable for classification is stored in the `Prediction` column.
 
-# Initialize the scaler
-scaler = StandardScaler()
+## Code Breakdown
 
-# Get the column names excluding 'Prediction'
-columns_to_scale = df.columns.difference(['Prediction'])
+1. **Loading the Dataset**:  
+   The dataset is uploaded via Google Colab's file upload functionality. After loading, the `Email No.` column (an identifier) is dropped.
 
-# Scale the features
-df[columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+2. **Preprocessing**:  
+   The features are scaled using `StandardScaler` to standardize the data. This is important when working with machine learning algorithms that are sensitive to feature scaling.
 
-# Display the first few rows of the preprocessed dataframe
-print("First few rows of the preprocessed dataframe:")
-print(df.head())
+3. **Splitting the Dataset**:  
+   The dataset is split into training and testing sets using an 80/20 ratio, ensuring that the model is trained on 80% of the data and tested on the remaining 20%.
 
-# Split the dataset into features and target variable
-X = df.drop(columns=['Prediction'])
-y = df['Prediction']
+4. **Randomized Search for Coarse Hyper-Parameter Tuning**:  
+   In this step, we perform an initial broad hyper-parameter tuning using `RandomizedSearchCV`. This method randomly samples a set of hyper-parameter combinations from the provided parameter grid.
 
-# Split the dataset into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+5. **Grid Search for Refined Hyper-Parameter Tuning**:  
+   Based on the results from the randomized search, we narrow down the hyper-parameter search space and use `GridSearchCV` for a more refined hyper-parameter search.
 
-# Function to display model performance
-def display_performance(model_name, y_test, y_pred):
-    print(f"{model_name} Performance:")
-    print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
-    print(f"Precision: {precision_score(y_test, y_pred):.4f}")
-    print(f"Recall: {recall_score(y_test, y_pred):.4f}")
-    print(f"F1 Score: {f1_score(y_test, y_pred):.4f}")
-    print()
+6. **Performance Evaluation**:  
+   After tuning, the best models from both search methods are evaluated using key performance metrics: accuracy, precision, recall, and F1-score. These metrics help compare the performance of the coarse and refined hyper-parameter tuned models.
 
-# Initialize the model
-gradient_boosting = GradientBoostingClassifier()
+## Model Evaluation Metrics
+The performance of each tuned model is evaluated using:
+- **Accuracy**: Proportion of correctly predicted instances.
+- **Precision**: Proportion of positive predictions that are actually correct.
+- **Recall**: Proportion of actual positives that are correctly identified.
+- **F1 Score**: A weighted harmonic mean of precision and recall.
 
-# Initial coarse hyperparameter tuning using Random Search
-param_dist_coarse = {
-    'n_estimators': [50, 100, 150],
-    'max_depth': [3, 5, 7],
-    'learning_rate': [0.01, 0.05, 0.1],
-    'subsample': [0.6, 0.8, 1.0]
-}
-random_search_coarse = RandomizedSearchCV(GradientBoostingClassifier(), param_distributions=param_dist_coarse, n_iter=10, cv=3, random_state=42)
-random_search_coarse.fit(X_train, y_train)
+## Usage
 
-print("Best Hyperparameters from Coarse Random Search for Gradient Boosting:")
-print(random_search_coarse.best_params_)
+1. **Upload your dataset**: 
+   The dataset should be a CSV file that contains features and a target column named `Prediction`.
+2. **Run the Code**: 
+   Simply run the provided code in a Google Colab environment.
+3. **Model Evaluation**: 
+   The script will display the best hyper-parameters and performance metrics for both the coarse and refined hyper-parameter tuned models.
 
-# Refine the search space based on initial results
-param_grid_refined = {
-    'n_estimators': [random_search_coarse.best_params_['n_estimators'] - 50, random_search_coarse.best_params_['n_estimators'], random_search_coarse.best_params_['n_estimators'] + 50],
-    'max_depth': [random_search_coarse.best_params_['max_depth'] - 1, random_search_coarse.best_params_['max_depth'], random_search_coarse.best_params_['max_depth'] + 1],
-    'learning_rate': [max(0.01, random_search_coarse.best_params_['learning_rate'] - 0.01), random_search_coarse.best_params_['learning_rate'], random_search_coarse.best_params_['learning_rate'] + 0.01],
-    'subsample': [max(0.6, random_search_coarse.best_params_['subsample'] - 0.1), random_search_coarse.best_params_['subsample'], min(1.0, random_search_coarse.best_params_['subsample'] + 0.1)]
-}
-grid_search_refined = GridSearchCV(GradientBoostingClassifier(), param_grid_refined, cv=3)
-grid_search_refined.fit(X_train, y_train)
+## Example Output
 
-print("Best Hyperparameters from Refined Grid Search for Gradient Boosting:")
-print(grid_search_refined.best_params_)
+```plaintext
+Best Hyperparameters from Coarse Random Search for Gradient Boosting:
+{'n_estimators': 100, 'max_depth': 5, 'learning_rate': 0.05, 'subsample': 0.8}
 
-# Evaluate the performance of the Refined Grid Search tuned model
-best_grid_model = grid_search_refined.best_estimator_
-y_pred_grid = best_grid_model.predict(X_test)
-display_performance("Refined Grid Search Tuned Gradient Boosting", y_test, y_pred_grid)
+Best Hyperparameters from Refined Grid Search for Gradient Boosting:
+{'n_estimators': 150, 'max_depth': 6, 'learning_rate': 0.06, 'subsample': 0.9}
 
-# Evaluate the performance of the Coarse Random Search tuned model
-best_random_model = random_search_coarse.best_estimator_
-y_pred_random = best_random_model.predict(X_test)
-display_performance("Coarse Random Search Tuned Gradient Boosting", y_test, y_pred_random)
+Refined Grid Search Tuned Gradient Boosting Performance:
+Accuracy: 0.87
+Precision: 0.88
+Recall: 0.85
+F1 Score: 0.86
+```
 
+## Conclusion
+This project illustrates how to apply hyper-parameter tuning to improve the performance of a machine learning model. By using both Randomized Search and Grid Search, we can explore a broad range of hyper-parameters and then refine them to find the optimal configuration.
